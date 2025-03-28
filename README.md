@@ -1,7 +1,5 @@
 # SlideAgent
 
-SlideAgent is a Python-based project that leverages OpenAI's capabilities for intelligent slide-related operations. This project is currently in development (version 0.1.0).
-
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -19,12 +17,12 @@ cd slideagent
 
 2. Install `uv` if you haven't already:
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
+brew install uv
 ```
 
 3. Create and activate a virtual environment with `uv`:
 ```bash
-uv venv
+uv venv .venv
 source .venv/bin/activate  # On Unix/macOS
 ```
 
