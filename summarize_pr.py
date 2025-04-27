@@ -3,7 +3,7 @@ import subprocess
 import requests
 import asyncio
 from typing import List
-
+import json
 from pydantic import BaseModel
 from pydantic_ai import Agent
 
@@ -125,22 +125,26 @@ def main():
     )
 
     github_event_name = os.environ.get('GITHUB_EVENT_NAME', '')
-    github_ref = os.environ.get('GITHUB_REF', '')
+    github_event_path = os.environ.get('GITHUB_EVENT_PATH', '')
     github_sha = os.environ.get('GITHUB_SHA', '')
 
-    print(f"🔎 Event: {github_event_name}, Ref: {github_ref}")
+    print(f"🔎 Event: {github_event_name}")
 
-    if github_event_name == 'pull_request_target' and github_ref.startswith('refs/pull/'):
-        # It's a pull request event
-        pr_number = github_ref.split('/')[2]
-        print(f"📦 Detected PR #{pr_number}. Posting comment to PR...")
-        post_comment(pr_number, comment)
-    elif github_event_name == 'push' and github_ref.startswith('refs/heads/'):
-        # It's a direct push
+    if github_event_name == 'pull_request_target':
+        with open(github_event_path, 'r') as f:
+            event_data = json.load(f)
+            pr_number = event_data.get('number')
+
+        if pr_number:
+            print(f"📦 Detected PR #{pr_number}. Posting comment to PR...")
+            post_comment(str(pr_number), comment)
+        else:
+            print(f"❌ Could not find PR number in event payload.")
+    elif github_event_name == 'push':
         print(f"📦 Detected push to branch. Posting comment to commit {github_sha}...")
         post_commit_comment(github_sha, comment)
     else:
-        print(f"❌ Could not determine where to post. GITHUB_REF={github_ref}, GITHUB_EVENT_NAME={github_event_name}")
+        print(f"❌ Could not determine where to post. Event={github_event_name}")
 
 if __name__ == "__main__":
     main()
