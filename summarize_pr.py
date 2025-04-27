@@ -109,7 +109,7 @@ def main():
 
     # Format nice comment markdown
     comment = (
-        "<!--summit-agent-->\n"  # 🔥 Hidden marker at top
+        "<!--summit-agent-->\n"
         "## 📝 High-Level Summary\n"
         "<details><summary>Expand</summary>\n\n"
         + "\n".join(f"- {item}" for item in summary.high_level_summary)
@@ -124,16 +124,23 @@ def main():
         + "\n</details>"
     )
 
-    # Detect PR number from GitHub env
+    github_event_name = os.environ.get('GITHUB_EVENT_NAME', '')
     github_ref = os.environ.get('GITHUB_REF', '')
-    pr_number = None
-    if github_ref.startswith('refs/pull/'):
-        pr_number = github_ref.split('/')[2]
+    github_sha = os.environ.get('GITHUB_SHA', '')
 
-    if pr_number:
+    print(f"🔎 Event: {github_event_name}, Ref: {github_ref}")
+
+    if github_event_name == 'pull_request_target' and github_ref.startswith('refs/pull/'):
+        # It's a pull request event
+        pr_number = github_ref.split('/')[2]
+        print(f"📦 Detected PR #{pr_number}. Posting comment to PR...")
         post_comment(pr_number, comment)
+    elif github_event_name == 'push' and github_ref.startswith('refs/heads/'):
+        # It's a direct push
+        print(f"📦 Detected push to branch. Posting comment to commit {github_sha}...")
+        post_commit_comment(github_sha, comment)
     else:
-        print(f"❌ PR number not found in GITHUB_REF: {github_ref}")
+        print(f"❌ Could not determine where to post. GITHUB_REF={github_ref}, GITHUB_EVENT_NAME={github_event_name}")
 
 if __name__ == "__main__":
     main()
