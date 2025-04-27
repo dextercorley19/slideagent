@@ -57,23 +57,46 @@ async def analyze_diff(diff_text: str) -> PRSummary:
     return result.output
 
 def post_comment(pr_number: str, comment_body: str):
-    """Post a comment to the PR."""
+    """Find old bot comment (if any), delete it, then post a fresh one."""
     token = os.environ['GITHUB_TOKEN']
     repo = os.environ['GITHUB_REPOSITORY']
-    url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
-
     headers = {
         'Authorization': f'token {token}',
         'Accept': 'application/vnd.github.v3+json'
     }
-    data = {'body': comment_body}
 
-    response = requests.post(url, headers=headers, json=data)
-    if response.status_code == 201:
-        print("✅ Successfully posted comment.")
+    # Fetch existing PR comments
+    comments_url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
+    response = requests.get(comments_url, headers=headers)
+    if response.status_code != 200:
+        print(f"❌ Failed to fetch comments: {response.status_code} - {response.text}")
+        return
+
+    comments = response.json()
+
+    # Look for a previous comment made by this bot (tagged with hidden marker)
+    bot_comment_id = None
+    for comment in comments:
+        if "<!--summit-agent-->" in comment['body']:
+            bot_comment_id = comment['id']
+            break
+
+    if bot_comment_id:
+        # Delete the previous comment
+        delete_url = f"https://api.github.com/repos/{repo}/issues/comments/{bot_comment_id}"
+        delete_response = requests.delete(delete_url, headers=headers)
+        if delete_response.status_code == 204:
+            print("🧹 Deleted old bot comment.")
+        else:
+            print(f"❌ Failed to delete old comment: {delete_response.status_code} - {delete_response.text}")
+
+    # Post the new comment
+    post_data = {'body': comment_body}
+    post_response = requests.post(comments_url, headers=headers, json=post_data)
+    if post_response.status_code == 201:
+        print("✅ Successfully posted new PR comment.")
     else:
-        print(f"❌ Failed to post comment: {response.status_code} - {response.text}")
-
+        print(f"❌ Failed to post new comment: {post_response.status_code} - {post_response.text}")
 # -------------------
 # Main Runner
 # -------------------
@@ -86,12 +109,19 @@ def main():
 
     # Format nice comment markdown
     comment = (
+        "<!--summit-agent-->\n"  # 🔥 Hidden marker at top
         "## 📝 High-Level Summary\n"
+        "<details><summary>Expand</summary>\n\n"
         + "\n".join(f"- {item}" for item in summary.high_level_summary)
-        + "\n\n## ⚠️ Potential Breaking Changes\n"
+        + "\n</details>\n\n"
+        "## ⚠️ Potential Breaking Changes\n"
+        "<details><summary>Expand</summary>\n\n"
         + "\n".join(f"- {item}" for item in summary.potential_breaking_changes)
-        + "\n\n## ✅ Recommended Code Improvements\n"
+        + "\n</details>\n\n"
+        "## ✅ Recommended Code Improvements\n"
+        "<details><summary>Expand</summary>\n\n"
         + "\n".join(f"- {item}" for item in summary.recommended_code_improvements)
+        + "\n</details>"
     )
 
     # Detect PR number from GitHub env
