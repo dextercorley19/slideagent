@@ -64,3 +64,4 @@ summary = asyncio.run(analyze_pr_diff(sample_diff))
 
 # Output the structured summary
 print(summary.model_dump_json(indent=2))
+print("hello summit")
