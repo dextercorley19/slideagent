@@ -1,2 +1,4 @@
 pydantic
+pydantic-ai
 requests
+openai  # (if using OpenAI backend)
