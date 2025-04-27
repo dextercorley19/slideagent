@@ -1,0 +1,34 @@
+name: PR Summarizer
+
+on:
+  push:
+    branches:
+      - '**'  # Triggers on pushes to all branches
+  pull_request:
+    branches:
+      - '**'  # Triggers on PRs to all branches
+
+jobs:
+  summarize-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Ensures full history is available for diff
+
+      - name: Set Up Python Environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate PR Summary
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python summarize_pr.py
