@@ -1,34 +1,35 @@
 name: PR Summarizer
 
 on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
   push:
     branches:
-      - '**'  # Triggers on pushes to all branches
-  pull_request:
-    branches:
-      - '**'  # Triggers on PRs to all branches
+      - '**'
 
 jobs:
   summarize-pr:
     runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Ensures full history is available for diff
+          fetch-depth: 0
 
-      - name: Set Up Python Environment
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Generate PR Summary
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run PR Summarizer
         run: |
           python summarize_pr.py
