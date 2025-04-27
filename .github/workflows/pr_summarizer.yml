@@ -31,5 +31,18 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run PR Summarizer
+        id: summarize
         run: |
-          python summarize_pr.py
+          python summarize_pr.py > pr_summary.md
+
+      - name: Post or update PR summary comment
+        uses: actions-cool/maintain-one-comment@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            <!-- PR Summary -->
+            ### 📝 PR Summary
+            ![Your Logo](https://yourdomain.com/logo.png)
+
+            ${{ steps.summarize.outputs.summary }}
+          body-include: '<!-- PR Summary -->'
